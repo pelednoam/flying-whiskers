@@ -1,0 +1,98 @@
+.cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+}
+
+.cloud1 {
+    width: 100px;
+    height: 60px;
+    top: 20%;
+    left: 20%;
+}
+
+.cloud1::before {
+    width: 60px;
+    height: 60px;
+    top: -20px;
+    left: 20px;
+}
+
+.cloud1::after {
+    width: 80px;
+    height: 80px;
+    top: -30px;
+    left: 50px;
+}
+
+.cloud2 {
+    width: 120px;
+    height: 70px;
+    top: 50%;
+    left: 60%;
+}
+
+.cloud2::before {
+    width: 70px;
+    height: 70px;
+    top: -20px;
+    left: 30px;
+}
+
+.cloud2::after {
+    width: 90px;
+    height: 90px;
+    top: -40px;
+    left: 60px;
+}
+
+.cloud3 {
+    width: 110px;
+    height: 65px;
+    top: 30%;
+    left: 40%;
+}
+
+.cloud3::before {
+    width: 65px;
+    height: 65px;
+    top: -20px;
+    left: 25px;
+}
+
+.cloud3::after {
+    width: 85px;
+    height: 85px;
+    top: -35px;
+    left: 55px;
+}
+
+.cloud4 {
+    width: 130px;
+    height: 75px;
+    top: 70%;
+    left: 30%;
+}
+
+.cloud4::before {
+    width: 75px;
+    height: 75px;
+    top: -25px;
+    left: 35px;
+}
+
+.cloud4::after {
+    width: 95px;
+    height: 95px;
+    top: -45px;
+    left: 65px;
+} 
