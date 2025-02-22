@@ -364,9 +364,14 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
                 onScoreUpdate?.();
                 // Play catch sound
                 catchSoundRef.current?.play();
-                // Add vibration feedback for mobile devices
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(100); // Short 100ms vibration
+                // Add vibration feedback for mobile devices with a more noticeable pattern
+                try {
+                    if ('vibrate' in navigator) {
+                        // Try a pattern: 100ms vibrate, 50ms pause, 100ms vibrate
+                        navigator.vibrate([100, 50, 100]);
+                    }
+                } catch (error) {
+                    console.log('Vibration not supported or permission denied');
                 }
             }
         });
