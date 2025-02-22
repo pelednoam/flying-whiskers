@@ -2,7 +2,7 @@
 
 A charming browser game where you control a magical flying cat chasing sardines in the sky! Built with React and Babylon.js.
 
-![Flying Cat](./public/assets/flying-cat-transparent.png)
+<img src="./public/assets/flying-cat-transparent.png" width="200" alt="Flying Cat">
 
 Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 
@@ -13,8 +13,9 @@ Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 - Beautiful sky background with drifting clouds
 - Score tracking system
 - Multiple control options (keyboard, mouse, touch)
-- Meow sound effects when catching sardines
+- Playful background music and meow sound effects
 - Responsive design that works on all devices
+- Smart sardine AI that tries to escape when the cat gets close
 
 ## How to Play
 
@@ -24,11 +25,11 @@ Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
    - Use **Arrow Keys** or **WASD** to control the cat's movement
    - Precise digital control for desktop users
 
-2. **Mouse Controls**
+2. **Mouse/Trackpad Controls**
    - Click and drag anywhere on the screen
-   - The cat follows your mouse movement
+   - The cat follows your mouse/trackpad movement
    - Release to stop moving
-   - Perfect for laptop trackpads
+   - Optimized for laptop trackpads
 
 3. **Touch Controls**
    - Touch and drag on mobile devices
@@ -37,9 +38,10 @@ Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 
 ### Gameplay:
 - Guide the cat to catch sardines
-- Sardines will try to escape when you get close
-- Each catch increases your score
-- Click the Restart button to start a new game
+- Sardines will actively try to swim away when you get close
+- Each catch increases your score and plays a meow sound
+- Relaxing background music accompanies your sardine chase
+- Click the Restart button in the top right to start a new game
 
 ## Getting Started
 
@@ -66,6 +68,7 @@ npm start
 - React with TypeScript for type safety
 - Babylon.js for game rendering and physics
 - CSS for cloud animations and UI
+- Web Audio API for sound management
 - Responsive design for all devices
 - GitHub Pages for deployment
 
@@ -77,7 +80,8 @@ The game is built using React and TypeScript, with Babylon.js handling the game 
 - `GameScene.tsx`: Babylon.js scene setup and game logic
 - Custom cloud animations using CSS
 - Sprite management for the cat and sardines
-- Touch and mouse input handling
+- Touch, mouse, and keyboard input handling
+- Sound management system
 - Responsive UI elements
 
 ## Building for Production
@@ -98,7 +102,7 @@ npm run deploy
 
 - Game concept and development: Noam Peled
 - Cat and sardine artwork
-- Sound effects
+- Sound effects and background music
 
 ## License
 
