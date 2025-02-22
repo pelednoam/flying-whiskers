@@ -2,7 +2,7 @@
 
 A charming browser game where you control a magical flying cat chasing sardines in the sky! Built with React and Babylon.js.
 
-![Flying Cat](public/assets/flying-cat-transparent.png)
+![Flying Cat](./public/assets/flying-cat-transparent.png)
 
 ## Game Features
 

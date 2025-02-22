@@ -81,19 +81,19 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         camera.setTarget(Vector3.Zero());
 
         // Load catch sound
-        catchSoundRef.current = new Sound("catchSound", "/assets/meow.mp3", scene, null, {
+        catchSoundRef.current = new Sound("catchSound", `${process.env.PUBLIC_URL}/assets/meow.mp3`, scene, null, {
             loop: false,
             autoplay: false,
             volume: 0.5
         });
 
         // Create sprite managers
-        catSpriteManagerRef.current = new SpriteManager('catManager', '/assets/flying-cat-transparent.png', 1, {
+        catSpriteManagerRef.current = new SpriteManager('catManager', `${process.env.PUBLIC_URL}/assets/flying-cat-transparent.png`, 1, {
             width: 1024,
             height: 1024,
             premultipliedAlpha: true
         }, scene);
-        sardineSpriteManagerRef.current = new SpriteManager('sardineManager', '/assets/sardine.png', 10, 1024, scene);
+        sardineSpriteManagerRef.current = new SpriteManager('sardineManager', `${process.env.PUBLIC_URL}/assets/sardine.png`, 10, 1024, scene);
 
         // Create cat sprite
         catSpriteRef.current = new Sprite('cat', catSpriteManagerRef.current);
