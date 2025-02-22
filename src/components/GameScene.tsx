@@ -29,7 +29,15 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
     const catVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const sardineVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const catchSoundRef = useRef<Sound | null>(null);
+    const backgroundMusicRef = useRef<Sound | null>(null);
     const touchStateRef = useRef<TouchState>({
+        active: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0
+    });
+    const mouseStateRef = useRef<TouchState>({
         active: false,
         startX: 0,
         startY: 0,
@@ -67,6 +75,10 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
                 catchSoundRef.current.dispose();
                 catchSoundRef.current = null;
             }
+            if (backgroundMusicRef.current) {
+                backgroundMusicRef.current.dispose();
+                backgroundMusicRef.current = null;
+            }
 
             // Finally scene and engine
             if (sceneRef.current) {
@@ -100,6 +112,18 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
             loop: false,
             autoplay: false,
             volume: 0.5
+        });
+
+        // Load and play background music
+        backgroundMusicRef.current = new Sound("backgroundMusic", `${process.env.PUBLIC_URL}/assets/nam-nam-nam.mp3`, scene, () => {
+            if (backgroundMusicRef.current) {
+                backgroundMusicRef.current.loop = true;
+                backgroundMusicRef.current.play();
+            }
+        }, {
+            loop: true,
+            autoplay: true,
+            volume: 0.3
         });
 
         // Create sprite managers
@@ -168,6 +192,56 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         canvasRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
         canvasRef.current.addEventListener('touchend', handleTouchEnd, { passive: false });
 
+        // Handle mouse input
+        const handleMouseDown = (e: MouseEvent): void => {
+            e.preventDefault();
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            
+            mouseStateRef.current = {
+                active: true,
+                startX: e.clientX,
+                startY: e.clientY,
+                currentX: e.clientX,
+                currentY: e.clientY
+            };
+        };
+
+        const handleMouseMove = (e: MouseEvent): void => {
+            if (!mouseStateRef.current.active) return;
+
+            // Update current position
+            mouseStateRef.current.currentX = e.clientX;
+            mouseStateRef.current.currentY = e.clientY;
+
+            // Calculate distance from start
+            const dx = mouseStateRef.current.currentX - mouseStateRef.current.startX;
+            const dy = mouseStateRef.current.currentY - mouseStateRef.current.startY;
+
+            // Update start position to current for continuous movement
+            mouseStateRef.current.startX = mouseStateRef.current.currentX;
+            mouseStateRef.current.startY = mouseStateRef.current.currentY;
+
+            // Apply movement directly
+            catVelocityRef.current.x += dx * MOUSE_SENSITIVITY;
+            catVelocityRef.current.y -= dy * MOUSE_SENSITIVITY;
+        };
+
+        const handleMouseUp = (e: MouseEvent): void => {
+            mouseStateRef.current.active = false;
+        };
+
+        // Add mouse event listeners
+        canvasRef.current.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        // Add dragstart prevention
+        const preventDrag = (e: DragEvent) => {
+            e.preventDefault();
+        };
+        canvasRef.current.addEventListener('dragstart', preventDrag);
+
         // Game constants
         const ACCELERATION: number = 0.01;
         const MAX_SPEED: number = 0.2;
@@ -177,6 +251,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         const SARDINE_ESCAPE_SPEED: number = 0.06;
         const SARDINE_AWARENESS_DISTANCE: number = 4;
         const TOUCH_SENSITIVITY: number = 0.01;
+        const MOUSE_SENSITIVITY: number = 0.02; // Increased for better trackpad response
 
         // Game loop
         const renderObserver = scene.onBeforeRenderObservable.add((): void => {
@@ -201,7 +276,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
                 const dx = touchStateRef.current.currentX - touchStateRef.current.startX;
                 const dy = touchStateRef.current.currentY - touchStateRef.current.startY;
                 catVelocityRef.current.x = dx * TOUCH_SENSITIVITY;
-                catVelocityRef.current.y = -dy * TOUCH_SENSITIVITY; // Invert Y for correct direction
+                catVelocityRef.current.y = -dy * TOUCH_SENSITIVITY;
             }
 
             // Apply drag and limit speed
@@ -302,6 +377,13 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
                 canvasRef.current.removeEventListener('touchend', handleTouchEnd);
             }
             
+            // Remove mouse event listeners
+            if (canvasRef.current) {
+                canvasRef.current.removeEventListener('mousedown', handleMouseDown);
+            }
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            
             // Clean up all resources
             cleanup();
         };
@@ -331,7 +413,16 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
     return (
         <canvas
             ref={canvasRef}
-            style={{ width: '100%', height: '100%', outline: 'none' }}
+            style={{
+                width: '100%',
+                height: '100%',
+                outline: 'none',
+                touchAction: 'none',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                cursor: 'grab'
+            }}
+            onContextMenu={(e) => e.preventDefault()}
         />
     );
 };

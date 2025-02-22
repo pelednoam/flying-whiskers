@@ -29,7 +29,7 @@ const Game: FC = (): ReactElement => {
             const dx = touchX - centerX;
             const dy = touchY - centerY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            const maxDistance = rect.width / 2 - 25; // Half of joystick-stick width
+            const maxDistance = rect.width / 2 - 25;
             
             // Normalize to max distance
             const normalizedDistance = Math.min(distance, maxDistance);
