@@ -10,6 +10,14 @@ interface KeyboardState {
     [key: string]: boolean;
 }
 
+interface TouchState {
+    active: boolean;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+}
+
 const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }): ReactElement => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const engineRef = useRef<Engine | null>(null);
@@ -21,6 +29,13 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
     const catVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const sardineVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const catchSoundRef = useRef<Sound | null>(null);
+    const touchStateRef = useRef<TouchState>({
+        active: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0
+    });
 
     useEffect((): (() => void) => {
         if (!canvasRef.current) return () => {};
@@ -120,6 +135,39 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
+        // Handle touch input
+        const handleTouchStart = (e: TouchEvent): void => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStateRef.current = {
+                active: true,
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY
+            };
+        };
+
+        const handleTouchMove = (e: TouchEvent): void => {
+            e.preventDefault();
+            if (!touchStateRef.current.active) return;
+            const touch = e.touches[0];
+            touchStateRef.current.currentX = touch.clientX;
+            touchStateRef.current.currentY = touch.clientY;
+        };
+
+        const handleTouchEnd = (e: TouchEvent): void => {
+            e.preventDefault();
+            touchStateRef.current.active = false;
+            catVelocityRef.current.x = 0;
+            catVelocityRef.current.y = 0;
+        };
+
+        // Add touch event listeners
+        canvasRef.current.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvasRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvasRef.current.addEventListener('touchend', handleTouchEnd, { passive: false });
+
         // Game constants
         const ACCELERATION: number = 0.01;
         const MAX_SPEED: number = 0.2;
@@ -128,12 +176,13 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         const COLLISION_DISTANCE: number = 1.5;
         const SARDINE_ESCAPE_SPEED: number = 0.06;
         const SARDINE_AWARENESS_DISTANCE: number = 4;
+        const TOUCH_SENSITIVITY: number = 0.01;
 
         // Game loop
         const renderObserver = scene.onBeforeRenderObservable.add((): void => {
             if (!catSpriteRef.current || !sardineSpriteRef.current) return;
 
-            // Update cat velocity based on input
+            // Handle keyboard input
             if (keyDownMap['ArrowLeft'] || keyDownMap['a']) {
                 catVelocityRef.current.x -= ACCELERATION;
             }
@@ -145,6 +194,14 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
             }
             if (keyDownMap['ArrowDown'] || keyDownMap['s']) {
                 catVelocityRef.current.y -= ACCELERATION;
+            }
+
+            // Handle touch input
+            if (touchStateRef.current.active) {
+                const dx = touchStateRef.current.currentX - touchStateRef.current.startX;
+                const dy = touchStateRef.current.currentY - touchStateRef.current.startY;
+                catVelocityRef.current.x = dx * TOUCH_SENSITIVITY;
+                catVelocityRef.current.y = -dy * TOUCH_SENSITIVITY; // Invert Y for correct direction
             }
 
             // Apply drag and limit speed
@@ -237,6 +294,13 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
             
             // Remove the render observer
             scene.onBeforeRenderObservable.remove(renderObserver);
+            
+            // Remove touch event listeners
+            if (canvasRef.current) {
+                canvasRef.current.removeEventListener('touchstart', handleTouchStart);
+                canvasRef.current.removeEventListener('touchmove', handleTouchMove);
+                canvasRef.current.removeEventListener('touchend', handleTouchEnd);
+            }
             
             // Clean up all resources
             cleanup();
