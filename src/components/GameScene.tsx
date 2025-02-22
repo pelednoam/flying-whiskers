@@ -111,7 +111,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         catchSoundRef.current = new Sound("catchSound", `${process.env.PUBLIC_URL}/assets/meow.mp3`, scene, null, {
             loop: false,
             autoplay: false,
-            volume: 0.5
+            volume: 0.3
         });
 
         // Load and play background music
