@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/flying-whiskers/static/css/main.dbac26fd.css",
-    "main.js": "/flying-whiskers/static/js/main.43679383.js",
+    "main.js": "/flying-whiskers/static/js/main.c5547403.js",
     "index.html": "/flying-whiskers/index.html",
     "main.dbac26fd.css.map": "/flying-whiskers/static/css/main.dbac26fd.css.map",
-    "main.43679383.js.map": "/flying-whiskers/static/js/main.43679383.js.map"
+    "main.c5547403.js.map": "/flying-whiskers/static/js/main.c5547403.js.map"
   },
   "entrypoints": [
     "static/css/main.dbac26fd.css",
-    "static/js/main.43679383.js"
+    "static/js/main.c5547403.js"
   ]
 }
