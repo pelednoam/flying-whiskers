@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/flying-whiskers/static/css/main.871506c0.css",
+    "main.js": "/flying-whiskers/static/js/main.d8a45b12.js",
+    "index.html": "/flying-whiskers/index.html",
+    "main.871506c0.css.map": "/flying-whiskers/static/css/main.871506c0.css.map",
+    "main.d8a45b12.js.map": "/flying-whiskers/static/js/main.d8a45b12.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.871506c0.css",
+    "static/js/main.d8a45b12.js"
+  ]
+}
