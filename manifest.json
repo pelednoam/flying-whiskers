@@ -20,6 +20,16 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#87CEEB",
+  "background_color": "#87CEEB",
+  "orientation": "landscape",
+  "categories": ["games", "entertainment"],
+  "description": "Control a magical flying cat to catch sardines in this charming browser game!",
+  "screenshots": [
+    {
+      "src": "assets/flying-cat-transparent.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
 }
