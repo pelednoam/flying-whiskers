@@ -7,6 +7,8 @@ A charming browser game where you control a magical flying cat chasing sardines 
 
 Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 
+✨ **Now available as a Progressive Web App (PWA)!** Install it on your phone or tablet for the best gaming experience.
+
 </div>
 <div style="width: 200px;">
 <img src="./public/assets/flying-cat-transparent.png" width="200" alt="Flying Cat">
@@ -23,6 +25,23 @@ Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 - Playful background music and meow sound effects
 - Responsive design that works on all devices
 - Smart sardine AI that tries to escape when the cat gets close
+- **Offline Play**: Install as a PWA to play without internet connection
+- **Home Screen App**: Add to your device's home screen for quick access
+
+## Installation
+
+### Mobile/Tablet Users
+1. Visit [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers) in your browser
+2. You'll see a prompt to "Add to Home Screen" or "Install App"
+3. Follow the prompts to install the game
+4. The game will appear on your home screen as a standalone app
+5. Launch and play anytime, even offline!
+
+### Desktop Users
+1. Visit [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers) in Chrome
+2. Click the install icon (➕) in the address bar
+3. Click "Install" in the prompt
+4. The game will install as a desktop app
 
 ## How to Play
 
@@ -77,6 +96,11 @@ npm start
 - CSS for cloud animations and UI
 - Web Audio API for sound management
 - Responsive design for all devices
+- Progressive Web App (PWA) features:
+  - Offline gameplay support
+  - Home screen installation
+  - Full-screen immersive experience
+  - Fast loading and caching
 - GitHub Pages for deployment
 
 ## Development
@@ -90,6 +114,8 @@ The game is built using React and TypeScript, with Babylon.js handling the game 
 - Touch, mouse, and keyboard input handling
 - Sound management system
 - Responsive UI elements
+- Service worker for PWA functionality
+- Asset caching for offline play
 
 ## Building for Production
 
