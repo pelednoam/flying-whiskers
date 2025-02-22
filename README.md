@@ -1,15 +1,15 @@
 # Flying Whiskers
 
-<table>
-<tr>
-<td width="70%">
+<table style="border: none;">
+<tr style="border: none;">
+<td width="70%" style="border: none;">
 
 A charming browser game where you control a magical flying cat chasing sardines in the sky! Built with React and Babylon.js.
 
 Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 
 </td>
-<td width="30%" align="right">
+<td width="30%" align="right" style="border: none;">
     <img src="./public/assets/flying-cat-transparent.png" width="200" alt="Flying Cat">
 </td>
 </tr>
