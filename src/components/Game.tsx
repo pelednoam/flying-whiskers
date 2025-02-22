@@ -5,6 +5,7 @@ import './Game.css';
 const Game: FC = (): ReactElement => {
     const [score, setScore] = useState<number>(0);
     const [key, setKey] = useState<number>(0);
+    const [isPaused, setIsPaused] = useState<boolean>(false);
     const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
     const joystickBaseRef = useRef<HTMLDivElement>(null);
     
@@ -15,6 +16,11 @@ const Game: FC = (): ReactElement => {
     const handleRestart = useCallback((): void => {
         setScore(0);
         setKey(prev => prev + 1);
+        setIsPaused(false);
+    }, []);
+
+    const handlePause = useCallback((): void => {
+        setIsPaused(prev => !prev);
     }, []);
 
     // Update joystick position based on touch input
@@ -81,7 +87,7 @@ const Game: FC = (): ReactElement => {
 
             {/* Game Canvas */}
             <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
-                <GameScene key={key} antialias={true} onScoreUpdate={handleScoreUpdate} />
+                <GameScene key={key} antialias={true} onScoreUpdate={handleScoreUpdate} isPaused={isPaused} />
             </div>
 
             {/* UI Overlay */}
@@ -105,27 +111,49 @@ const Game: FC = (): ReactElement => {
                     Score: {score}
                 </div>
 
-                {/* Restart Button */}
-                <button 
-                    onClick={handleRestart}
-                    style={{
-                        position: 'absolute',
-                        top: 20,
-                        right: 20,
-                        padding: '8px 16px',
-                        fontSize: '18px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                        pointerEvents: 'auto'
-                    }}
-                >
-                    Restart
-                </button>
+                {/* Game Controls */}
+                <div style={{
+                    position: 'absolute',
+                    top: 20,
+                    right: 20,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    pointerEvents: 'auto'
+                }}>
+                    <button 
+                        onClick={handleRestart}
+                        style={{
+                            padding: '8px 16px',
+                            fontSize: '18px',
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}
+                    >
+                        Restart
+                    </button>
+                    <button 
+                        onClick={handlePause}
+                        style={{
+                            padding: '8px 16px',
+                            fontSize: '18px',
+                            backgroundColor: isPaused ? '#f44336' : '#2196F3',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}
+                    >
+                        {isPaused ? 'Resume' : 'Pause'}
+                    </button>
+                </div>
 
                 {/* Virtual Joystick */}
                 <div className="joystick-base" ref={joystickBaseRef}>

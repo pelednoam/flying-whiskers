@@ -1,9 +1,10 @@
 import React, { FC, useEffect, useRef, ReactElement } from 'react';
-import { Engine, Scene, Vector3, FreeCamera, Texture, SpriteManager, Sprite, Vector2, Color3, Color4, ParticleSystem, Texture as BabylonTexture, Sound } from '@babylonjs/core';
+import { Engine, Scene, Vector3, FreeCamera, SpriteManager, Sprite, Vector2, Color3, Color4, Sound } from '@babylonjs/core';
 
 interface GameSceneProps {
     antialias: boolean;
     onScoreUpdate?: () => void;
+    isPaused?: boolean;
 }
 
 interface KeyboardState {
@@ -18,7 +19,7 @@ interface TouchState {
     currentY: number;
 }
 
-const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }): ReactElement => {
+const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, isPaused = false }): ReactElement => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const engineRef = useRef<Engine | null>(null);
     const sceneRef = useRef<Scene | null>(null);
@@ -45,8 +46,20 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         currentY: 0
     });
 
+    // Effect for handling pause state
+    useEffect(() => {
+        if (isPaused) {
+            backgroundMusicRef.current?.pause();
+        } else {
+            backgroundMusicRef.current?.play();
+        }
+    }, [isPaused]);
+
     useEffect((): (() => void) => {
         if (!canvasRef.current) return () => {};
+
+        // Store canvas reference for cleanup
+        const canvas = canvasRef.current;
 
         // Cleanup any existing resources
         const cleanup = () => {
@@ -111,7 +124,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
         catchSoundRef.current = new Sound("catchSound", `${process.env.PUBLIC_URL}/assets/meow.mp3`, scene, null, {
             loop: false,
             autoplay: false,
-            volume: 0.3
+            volume: 0.15
         });
 
         // Load and play background music
@@ -255,7 +268,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
 
         // Game loop
         const renderObserver = scene.onBeforeRenderObservable.add((): void => {
-            if (!catSpriteRef.current || !sardineSpriteRef.current) return;
+            if (!catSpriteRef.current || !sardineSpriteRef.current || isPaused) return;
 
             // Handle keyboard input
             if (keyDownMap['ArrowLeft'] || keyDownMap['a']) {
@@ -351,6 +364,10 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
                 onScoreUpdate?.();
                 // Play catch sound
                 catchSoundRef.current?.play();
+                // Add vibration feedback for mobile devices
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(100); // Short 100ms vibration
+                }
             }
         });
 
@@ -371,16 +388,14 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {} }):
             scene.onBeforeRenderObservable.remove(renderObserver);
             
             // Remove touch event listeners
-            if (canvasRef.current) {
-                canvasRef.current.removeEventListener('touchstart', handleTouchStart);
-                canvasRef.current.removeEventListener('touchmove', handleTouchMove);
-                canvasRef.current.removeEventListener('touchend', handleTouchEnd);
+            if (canvas) {
+                canvas.removeEventListener('touchstart', handleTouchStart);
+                canvas.removeEventListener('touchmove', handleTouchMove);
+                canvas.removeEventListener('touchend', handleTouchEnd);
+                canvas.removeEventListener('mousedown', handleMouseDown);
             }
             
             // Remove mouse event listeners
-            if (canvasRef.current) {
-                canvasRef.current.removeEventListener('mousedown', handleMouseDown);
-            }
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
             
