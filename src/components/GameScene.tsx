@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useRef, ReactElement } from 'react';
-import { Engine, Scene, Vector3, FreeCamera, SpriteManager, Sprite, Vector2, Color3, Color4, Sound } from '@babylonjs/core';
+import { Engine, Scene, Vector3, FreeCamera, SpriteManager, Sprite, Vector2, Color3, Color4, Sound, ParticleSystem, Texture } from '@babylonjs/core';
 
 interface GameSceneProps {
     antialias: boolean;
@@ -45,6 +45,7 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
         currentX: 0,
         currentY: 0
     });
+    const particleSystemRef = useRef<ParticleSystem | null>(null);
 
     // Effect for handling pause state
     useEffect(() => {
@@ -356,18 +357,19 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
 
             // Check for collision
             if (distance < COLLISION_DISTANCE) {
-                // Caught the sardine!
+                // Get the sardine position before disposing it
+                const sardinePosition = sardineSpriteRef.current.position.clone();
+                
+                // Create catch effect at sardine position
+                createCatchEffect(sardinePosition);
+                
+                // Handle collision (existing code)
                 sardineSpriteRef.current.dispose();
                 createSardine();
-                sardineVelocityRef.current.x = 0;
-                sardineVelocityRef.current.y = 0;
                 onScoreUpdate?.();
-                // Play catch sound
                 catchSoundRef.current?.play();
-                // Add vibration feedback for mobile devices with a more noticeable pattern
                 try {
                     if ('vibrate' in navigator) {
-                        // Try a pattern: 100ms vibrate, 50ms pause, 100ms vibrate
                         navigator.vibrate([100, 50, 100]);
                     }
                 } catch (error) {
@@ -428,6 +430,55 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
         sardine.position.y = Math.random() * 6 - 3;
         
         sardineSpriteRef.current = sardine;
+    };
+
+    const createCatchEffect = (position: Vector3): void => {
+        if (!sceneRef.current) return;
+
+        // Clean up previous particle system if it exists
+        if (particleSystemRef.current) {
+            particleSystemRef.current.dispose();
+        }
+
+        // Create particle system
+        const particleSystem = new ParticleSystem("catchEffect", 50, sceneRef.current);
+        particleSystemRef.current = particleSystem;
+
+        // Particle texture
+        particleSystem.particleTexture = new Texture(`${process.env.PUBLIC_URL}/assets/star.png`, sceneRef.current);
+
+        // Set particle system properties
+        particleSystem.emitter = position;
+        particleSystem.minEmitBox = new Vector3(-0.2, -0.2, 0);
+        particleSystem.maxEmitBox = new Vector3(0.2, 0.2, 0);
+        particleSystem.color1 = new Color4(1, 1, 0, 1);
+        particleSystem.color2 = new Color4(1, 0.5, 0, 1);
+        particleSystem.colorDead = new Color4(0, 0, 0, 0);
+        particleSystem.minSize = 0.1;
+        particleSystem.maxSize = 0.3;
+        particleSystem.minLifeTime = 0.2;
+        particleSystem.maxLifeTime = 0.4;
+        particleSystem.emitRate = 100;
+        particleSystem.gravity = new Vector3(0, 0, 0);
+        particleSystem.direction1 = new Vector3(-1, -1, 0);
+        particleSystem.direction2 = new Vector3(1, 1, 0);
+        particleSystem.minAngularSpeed = 0;
+        particleSystem.maxAngularSpeed = Math.PI;
+        particleSystem.minEmitPower = 1;
+        particleSystem.maxEmitPower = 2;
+        particleSystem.updateSpeed = 0.01;
+
+        // Start the particle system
+        particleSystem.start();
+
+        // Stop and dispose after animation
+        setTimeout(() => {
+            particleSystem.stop();
+            setTimeout(() => {
+                particleSystem.dispose();
+                particleSystemRef.current = null;
+            }, 500);
+        }, 200);
     };
 
     return (

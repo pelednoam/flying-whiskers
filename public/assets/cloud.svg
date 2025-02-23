@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+    </filter>
+  </defs>
+  <g filter="url(#blur)">
+    <path d="M30,64 Q45,55 60,60 T90,64 T120,60" 
+          fill="white" opacity="0.8"
+          transform="translate(-10,-10) scale(1.2)" />
+    <path d="M20,70 Q35,65 50,68 T80,70 T110,68" 
+          fill="white" opacity="0.9"
+          transform="translate(0,0) scale(1.1)" />
+    <path d="M10,75 Q25,72 40,74 T70,75 T100,74" 
+          fill="white" opacity="1" />
+  </g>
+</svg> 
