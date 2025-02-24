@@ -69,7 +69,37 @@ const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
 // GameScene.tsx refs
 const catSpriteRef = useRef<Sprite | null>(null);
 const sardineSpriteRef = useRef<Sprite | null>(null);
+const dogSpriteRef = useRef<Sprite | null>(null);
 const catVelocityRef = useRef<Vector2>(new Vector2(0, 0));
+```
+
+### 3. Game Constants
+```typescript
+// Movement and gameplay constants
+const ACCELERATION: number = 0.01;
+const MAX_SPEED: number = 0.2;
+const DRAG: number = 0.98;
+const BOUNDS: number = 8;
+const COLLISION_DISTANCE: number = 1.5;
+const SARDINE_ESCAPE_SPEED: number = 0.06;
+const SARDINE_AWARENESS_DISTANCE: number = 4;
+const DOG_CHASE_SPEED: number = 0.018;  // 30% of original 0.06 for slower movement
+const DOG_DRAG: number = 0.98;
+```
+
+### 4. Character Specifications
+```typescript
+// Cat sprite dimensions
+catSpriteRef.current.width = 3;
+catSpriteRef.current.height = 3;
+
+// Sardine sprite dimensions
+sardine.width = 2.5;
+sardine.height = 1.5;
+
+// Dog sprite dimensions
+dogSpriteRef.current.width = 2.8;   // 70% of original 4
+dogSpriteRef.current.height = 2.8;  // 70% of original 4
 ```
 
 ## Implementation Details
@@ -104,6 +134,38 @@ catSpriteRef.current = new Sprite('cat', catSpriteManagerRef.current);
 catSpriteRef.current.width = 3;
 catSpriteRef.current.height = 3;
 ```
+
+### 3. Dog Movement System
+```typescript
+// Calculate direction to cat
+const dogToCatDx = catSpriteRef.current.position.x - dogSpriteRef.current.position.x;
+const dogToCatDy = catSpriteRef.current.position.y - dogSpriteRef.current.position.y;
+const angle = Math.atan2(dogToCatDy, dogToCatDx);
+
+// Set velocity towards cat with reduced speed
+dogVelocityRef.current.x = Math.cos(angle) * DOG_CHASE_SPEED;  // Slower movement
+dogVelocityRef.current.y = Math.sin(angle) * DOG_CHASE_SPEED;  // Slower movement
+
+// Update position
+dogSpriteRef.current.position.x += dogVelocityRef.current.x;
+dogSpriteRef.current.position.y += dogVelocityRef.current.y;
+
+// Flip sprite based on movement direction
+if (dogVelocityRef.current.x < -0.01) {
+    dogSpriteRef.current.invertU = true;
+} else if (dogVelocityRef.current.x > 0.01) {
+    dogSpriteRef.current.invertU = false;
+}
+```
+
+### 4. Recent Changes
+The dog's behavior has been modified to create a more relaxed gaming experience:
+1. Size reduction to 70% (from 4.0 to 2.8 units)
+2. Speed reduction to 30% (from 0.06 to 0.018 units per frame)
+3. Maintained smooth movement and sprite flipping
+4. Preserved boundary constraints
+
+These changes make the dog a less imposing presence while maintaining its companionable nature.
 
 ## Asset Management
 

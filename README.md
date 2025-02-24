@@ -25,8 +25,26 @@ Play now: [Flying Whiskers Game](https://pelednoam.github.io/flying-whiskers)
 - Playful background music and meow sound effects
 - Responsive design that works on all devices
 - Smart sardine AI that tries to escape when the cat gets close
+- Gentle German Shepherd companion that slowly follows the cat
 - **Offline Play**: Install as a PWA to play without internet connection
 - **Home Screen App**: Add to your device's home screen for quick access
+
+## Game Characters
+
+### The Flying Cat
+- Main character controlled by the player
+- Agile and responsive movement
+- Can catch sardines to increase score
+
+### The Sardines
+- Try to escape when the cat gets close
+- Appear in random positions after being caught
+- Each catch increases your score
+
+### The German Shepherd
+- Friendly companion that follows the cat
+- Moves at a relaxed pace (30% of original speed)
+- Appears at a comfortable size (70% of original size)
 
 ## Installation
 

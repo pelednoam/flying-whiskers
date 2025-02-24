@@ -1,10 +1,12 @@
 import React, { FC, useEffect, useRef, ReactElement } from 'react';
-import { Engine, Scene, Vector3, FreeCamera, SpriteManager, Sprite, Vector2, Color3, Color4, Sound, ParticleSystem, Texture } from '@babylonjs/core';
+import { Engine, Scene, Vector3, FreeCamera, SpriteManager, Sprite, Vector2, Color3, Color4, Sound, ParticleSystem, Texture, Observer } from '@babylonjs/core';
 
 interface GameSceneProps {
     antialias: boolean;
     onScoreUpdate?: () => void;
     isPaused?: boolean;
+    isGameStarted?: boolean;
+    score?: number;
 }
 
 interface KeyboardState {
@@ -19,16 +21,25 @@ interface TouchState {
     currentY: number;
 }
 
-const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, isPaused = false }): ReactElement => {
+const GameScene: FC<GameSceneProps> = ({ 
+    antialias, 
+    onScoreUpdate = () => {}, 
+    isPaused = false,
+    isGameStarted = false,
+    score = 0
+}): ReactElement => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const engineRef = useRef<Engine | null>(null);
     const sceneRef = useRef<Scene | null>(null);
     const catSpriteRef = useRef<Sprite | null>(null);
     const sardineSpriteRef = useRef<Sprite | null>(null);
+    const dogSpriteRef = useRef<Sprite | null>(null);
     const catSpriteManagerRef = useRef<SpriteManager | null>(null);
     const sardineSpriteManagerRef = useRef<SpriteManager | null>(null);
+    const dogSpriteManagerRef = useRef<SpriteManager | null>(null);
     const catVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const sardineVelocityRef = useRef<Vector2>(new Vector2(0, 0));
+    const dogVelocityRef = useRef<Vector2>(new Vector2(0, 0));
     const catchSoundRef = useRef<Sound | null>(null);
     const backgroundMusicRef = useRef<Sound | null>(null);
     const touchStateRef = useRef<TouchState>({
@@ -46,72 +57,46 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
         currentY: 0
     });
     const particleSystemRef = useRef<ParticleSystem | null>(null);
+    const keyDownMapRef = useRef<KeyboardState>({});
 
-    // Effect for handling pause state
+    // Game constants
+    const ACCELERATION: number = 0.01;
+    const MAX_SPEED: number = 0.2;
+    const DRAG: number = 0.98;
+    const BOUNDS: number = 8;
+    const COLLISION_DISTANCE: number = 1.5;
+    const SARDINE_ESCAPE_SPEED: number = 0.06;
+    const SARDINE_AWARENESS_DISTANCE: number = 4;
+    const TOUCH_SENSITIVITY: number = 0.01;
+    const MOUSE_SENSITIVITY: number = 0.02;
+    const DOG_CHASE_SPEED: number = 0.018;
+    const DOG_DRAG: number = 0.98;
+
     useEffect(() => {
-        if (isPaused) {
-            backgroundMusicRef.current?.pause();
-        } else {
-            backgroundMusicRef.current?.play();
-        }
-    }, [isPaused]);
-
-    useEffect((): (() => void) => {
-        if (!canvasRef.current) return () => {};
-
-        // Store canvas reference for cleanup
-        const canvas = canvasRef.current;
-
-        // Cleanup any existing resources
-        const cleanup = () => {
-            // Remove sprites first
-            if (catSpriteRef.current) {
-                catSpriteRef.current.dispose();
-                catSpriteRef.current = null;
-            }
-            if (sardineSpriteRef.current) {
-                sardineSpriteRef.current.dispose();
-                sardineSpriteRef.current = null;
-            }
-
-            // Then sprite managers
-            if (catSpriteManagerRef.current) {
-                catSpriteManagerRef.current.dispose();
-                catSpriteManagerRef.current = null;
-            }
-            if (sardineSpriteManagerRef.current) {
-                sardineSpriteManagerRef.current.dispose();
-                sardineSpriteManagerRef.current = null;
-            }
-
-            // Then sound
-            if (catchSoundRef.current) {
-                catchSoundRef.current.dispose();
-                catchSoundRef.current = null;
-            }
-            if (backgroundMusicRef.current) {
-                backgroundMusicRef.current.dispose();
-                backgroundMusicRef.current = null;
-            }
-
-            // Finally scene and engine
-            if (sceneRef.current) {
-                sceneRef.current.dispose();
-                sceneRef.current = null;
-            }
-            if (engineRef.current) {
-                engineRef.current.dispose();
-                engineRef.current = null;
-            }
+        const logMessage = (msg: string) => {
+            const timestamp = new Date().toISOString();
+            console.log(`[${timestamp}] 🎮 ${msg}`);
         };
 
-        // Clean up existing resources
-        cleanup();
+        let isCleaningUp = false;
 
-        // Create new engine and scene
-        engineRef.current = new Engine(canvasRef.current, antialias);
+        if (!canvasRef.current) {
+            logMessage('Canvas not ready');
+            return;
+        }
+
+        logMessage('Initializing game scene');
+
+        // Create engine if it doesn't exist
+        if (!engineRef.current) {
+            engineRef.current = new Engine(canvasRef.current, antialias);
+            logMessage('Engine created');
+        }
+
+        // Create scene
         const scene = new Scene(engineRef.current);
         sceneRef.current = scene;
+        logMessage('Scene created');
         
         // Set transparent background
         scene.clearColor = new Color4(0, 0, 0, 0);
@@ -120,168 +105,142 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
         // Create camera
         const camera = new FreeCamera('camera', new Vector3(0, 0, -15), scene);
         camera.setTarget(Vector3.Zero());
-
-        // Load catch sound
-        catchSoundRef.current = new Sound("catchSound", `${process.env.PUBLIC_URL}/assets/meow.mp3`, scene, null, {
-            loop: false,
-            autoplay: false,
-            volume: 0.15
-        });
-
-        // Load and play background music
-        backgroundMusicRef.current = new Sound("backgroundMusic", `${process.env.PUBLIC_URL}/assets/nam-nam-nam.mp3`, scene, () => {
-            if (backgroundMusicRef.current) {
-                backgroundMusicRef.current.loop = true;
-                backgroundMusicRef.current.play();
-            }
-        }, {
-            loop: true,
-            autoplay: true,
-            volume: 0.3
-        });
-
+        logMessage('Camera set up');
+        
         // Create sprite managers
         catSpriteManagerRef.current = new SpriteManager('catManager', `${process.env.PUBLIC_URL}/assets/flying-cat-transparent.png`, 1, {
             width: 1024,
             height: 1024,
             premultipliedAlpha: true
         }, scene);
+        logMessage('Cat sprite manager created');
+        
         sardineSpriteManagerRef.current = new SpriteManager('sardineManager', `${process.env.PUBLIC_URL}/assets/sardine.png`, 10, 1024, scene);
-
-        // Create cat sprite
-        catSpriteRef.current = new Sprite('cat', catSpriteManagerRef.current);
-        catSpriteRef.current.width = 3;
-        catSpriteRef.current.height = 3;
-        catSpriteRef.current.position = Vector3.Zero();
-        catVelocityRef.current = new Vector2(0, 0);
-
-        // Create initial sardine
-        createSardine();
-        sardineVelocityRef.current = new Vector2(0, 0);
-
-        // Handle keyboard input
-        const keyDownMap: KeyboardState = {};
+        logMessage('Sardine sprite manager created');
         
-        const handleKeyDown = (e: KeyboardEvent): void => {
-            keyDownMap[e.key] = true;
-        };
-        
-        const handleKeyUp = (e: KeyboardEvent): void => {
-            keyDownMap[e.key] = false;
-        };
+        dogSpriteManagerRef.current = new SpriteManager('dogManager', `${process.env.PUBLIC_URL}/assets/german_shepherd_transparent.png`, 1, {
+            width: 1024,
+            height: 1024,
+            premultipliedAlpha: true
+        }, scene);
+        logMessage('Dog sprite manager created');
 
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
+        // Create initial sprites
+        try {
+            const catSpriteManager = catSpriteManagerRef.current;
+            catSpriteRef.current = new Sprite('cat', catSpriteManager);
+            catSpriteRef.current.width = 3;
+            catSpriteRef.current.height = 3;
+            catSpriteRef.current.position = new Vector3(-4, 0, 0);
+            catVelocityRef.current = new Vector2(0, 0);
+            logMessage('Cat sprite created successfully');
 
-        // Handle touch input
-        const handleTouchStart = (e: TouchEvent): void => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            touchStateRef.current = {
-                active: true,
-                startX: touch.clientX,
-                startY: touch.clientY,
-                currentX: touch.clientX,
-                currentY: touch.clientY
-            };
-        };
+            const sardineSpriteManager = sardineSpriteManagerRef.current;
+            const sardine = new Sprite('sardine', sardineSpriteManager);
+            sardine.width = 2.5;
+            sardine.height = 1.5;
+            sardine.invertU = true;
+            sardine.position = new Vector3(4, 0, 0);
+            sardineVelocityRef.current = new Vector2(0, 0);
+            sardineSpriteRef.current = sardine;
+            logMessage('Sardine sprite created successfully');
 
-        const handleTouchMove = (e: TouchEvent): void => {
-            e.preventDefault();
-            if (!touchStateRef.current.active) return;
-            const touch = e.touches[0];
-            touchStateRef.current.currentX = touch.clientX;
-            touchStateRef.current.currentY = touch.clientY;
-        };
+            // Create dog sprite immediately
+            const dogSpriteManager = dogSpriteManagerRef.current;
+            dogSpriteRef.current = new Sprite('dog', dogSpriteManager);
+            dogSpriteRef.current.width = 2.8;  // 70% of original 4
+            dogSpriteRef.current.height = 2.8;  // 70% of original 4
+            dogSpriteRef.current.position = new Vector3(8, 0, 0);
+            dogVelocityRef.current = new Vector2(0, 0);
+            logMessage('Dog sprite created successfully');
+        } catch (error) {
+            logMessage(`Error creating sprites: ${error}`);
+        }
 
-        const handleTouchEnd = (e: TouchEvent): void => {
-            e.preventDefault();
-            touchStateRef.current.active = false;
-            catVelocityRef.current.x = 0;
-            catVelocityRef.current.y = 0;
-        };
+        // Start render loop
+        engineRef.current.runRenderLoop((): void => {
+            scene.render();
+        });
+        logMessage('Render loop started');
 
-        // Add touch event listeners
-        canvasRef.current.addEventListener('touchstart', handleTouchStart, { passive: false });
-        canvasRef.current.addEventListener('touchmove', handleTouchMove, { passive: false });
-        canvasRef.current.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-        // Handle mouse input
-        const handleMouseDown = (e: MouseEvent): void => {
-            e.preventDefault();
-            const rect = canvasRef.current?.getBoundingClientRect();
-            if (!rect) return;
-            
-            mouseStateRef.current = {
-                active: true,
-                startX: e.clientX,
-                startY: e.clientY,
-                currentX: e.clientX,
-                currentY: e.clientY
-            };
-        };
-
-        const handleMouseMove = (e: MouseEvent): void => {
-            if (!mouseStateRef.current.active) return;
-
-            // Update current position
-            mouseStateRef.current.currentX = e.clientX;
-            mouseStateRef.current.currentY = e.clientY;
-
-            // Calculate distance from start
-            const dx = mouseStateRef.current.currentX - mouseStateRef.current.startX;
-            const dy = mouseStateRef.current.currentY - mouseStateRef.current.startY;
-
-            // Update start position to current for continuous movement
-            mouseStateRef.current.startX = mouseStateRef.current.currentX;
-            mouseStateRef.current.startY = mouseStateRef.current.currentY;
-
-            // Apply movement directly
-            catVelocityRef.current.x += dx * MOUSE_SENSITIVITY;
-            catVelocityRef.current.y -= dy * MOUSE_SENSITIVITY;
-        };
-
-        const handleMouseUp = (e: MouseEvent): void => {
-            mouseStateRef.current.active = false;
-        };
-
-        // Add mouse event listeners
-        canvasRef.current.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseup', handleMouseUp);
-
-        // Add dragstart prevention
-        const preventDrag = (e: DragEvent) => {
-            e.preventDefault();
-        };
-        canvasRef.current.addEventListener('dragstart', preventDrag);
-
-        // Game constants
-        const ACCELERATION: number = 0.01;
-        const MAX_SPEED: number = 0.2;
-        const DRAG: number = 0.98;
-        const BOUNDS: number = 8;
-        const COLLISION_DISTANCE: number = 1.5;
-        const SARDINE_ESCAPE_SPEED: number = 0.06;
-        const SARDINE_AWARENESS_DISTANCE: number = 4;
-        const TOUCH_SENSITIVITY: number = 0.01;
-        const MOUSE_SENSITIVITY: number = 0.02; // Increased for better trackpad response
-
-        // Game loop
+        // Add render observer
         const renderObserver = scene.onBeforeRenderObservable.add((): void => {
-            if (!catSpriteRef.current || !sardineSpriteRef.current || isPaused) return;
+            const logMessage = (msg: string) => {
+                const timestamp = new Date().toISOString();
+                console.log(`[${timestamp}] 🎮 ${msg}`);
+            };
+
+            if (!catSpriteRef.current || !sardineSpriteRef.current) {
+                logMessage('Sprites not ready in render observer');
+                return;
+            }
+
+            // If game hasn't started, just keep sprites in their initial positions
+            if (!isGameStarted) {
+                catSpriteRef.current.position = new Vector3(-4, 0, 0);
+                sardineSpriteRef.current.position = new Vector3(4, 0, 0);
+                if (dogSpriteRef.current) {
+                    dogSpriteRef.current.position = new Vector3(8, 0, 0);
+                }
+                return;
+            }
+
+            // If paused, don't update positions
+            if (isPaused) {
+                return;
+            }
+
+            // Handle dog movement
+            if (isGameStarted && dogSpriteRef.current && catSpriteRef.current) {
+                // Calculate distance between dog and cat
+                const dogToCatDx = catSpriteRef.current.position.x - dogSpriteRef.current.position.x;
+                const dogToCatDy = catSpriteRef.current.position.y - dogSpriteRef.current.position.y;
+                const dogToCatDistance = Math.sqrt(dogToCatDx * dogToCatDx + dogToCatDy * dogToCatDy);
+
+                // Log positions every few frames
+                if (Math.random() < 0.1) {  // Increased logging frequency
+                    console.log(`[${new Date().toISOString()}] 🐕 Dog chase update:
+                        Game started: ${isGameStarted}
+                        Dog pos: (${dogSpriteRef.current.position.x.toFixed(2)}, ${dogSpriteRef.current.position.y.toFixed(2)})
+                        Cat pos: (${catSpriteRef.current.position.x.toFixed(2)}, ${catSpriteRef.current.position.y.toFixed(2)})
+                        Distance: ${dogToCatDistance.toFixed(2)}
+                        Dog velocity: (${dogVelocityRef.current.x.toFixed(2)}, ${dogVelocityRef.current.y.toFixed(2)})`);
+                }
+
+                // Calculate direction to cat and normalize it
+                const angle = Math.atan2(dogToCatDy, dogToCatDx);
+                
+                // Set velocity towards cat with the global speed constant
+                dogVelocityRef.current.x = Math.cos(angle) * DOG_CHASE_SPEED;
+                dogVelocityRef.current.y = Math.sin(angle) * DOG_CHASE_SPEED;
+                
+                // Update dog position with the new velocity
+                dogSpriteRef.current.position.x += dogVelocityRef.current.x;
+                dogSpriteRef.current.position.y += dogVelocityRef.current.y;
+
+                // Keep dog within bounds
+                dogSpriteRef.current.position.x = Math.max(-BOUNDS, Math.min(BOUNDS, dogSpriteRef.current.position.x));
+                dogSpriteRef.current.position.y = Math.max(-BOUNDS/2, Math.min(BOUNDS/2, dogSpriteRef.current.position.y));
+
+                // Flip dog sprite based on movement direction
+                if (dogVelocityRef.current.x < -0.01) {
+                    dogSpriteRef.current.invertU = true;
+                } else if (dogVelocityRef.current.x > 0.01) {
+                    dogSpriteRef.current.invertU = false;
+                }
+            }
 
             // Handle keyboard input
-            if (keyDownMap['ArrowLeft'] || keyDownMap['a']) {
+            if (keyDownMapRef.current['ArrowLeft'] || keyDownMapRef.current['a']) {
                 catVelocityRef.current.x -= ACCELERATION;
             }
-            if (keyDownMap['ArrowRight'] || keyDownMap['d']) {
+            if (keyDownMapRef.current['ArrowRight'] || keyDownMapRef.current['d']) {
                 catVelocityRef.current.x += ACCELERATION;
             }
-            if (keyDownMap['ArrowUp'] || keyDownMap['w']) {
+            if (keyDownMapRef.current['ArrowUp'] || keyDownMapRef.current['w']) {
                 catVelocityRef.current.y += ACCELERATION;
             }
-            if (keyDownMap['ArrowDown'] || keyDownMap['s']) {
+            if (keyDownMapRef.current['ArrowDown'] || keyDownMapRef.current['s']) {
                 catVelocityRef.current.y -= ACCELERATION;
             }
 
@@ -356,16 +315,30 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
             }
 
             // Check for collision
-            if (distance < COLLISION_DISTANCE) {
-                // Get the sardine position before disposing it
-                const sardinePosition = sardineSpriteRef.current.position.clone();
+            if (distance < COLLISION_DISTANCE && catSpriteRef.current && sardineSpriteRef.current) {
+                console.log(`[${new Date().toISOString()}] 🎯 Collision detected! Current score before update: ${score}`);
                 
-                // Create catch effect at sardine position
+                // Create catch effect at sardine position before disposing it
+                const sardinePosition = sardineSpriteRef.current.position.clone();
                 createCatchEffect(sardinePosition);
                 
-                // Handle collision (existing code)
-                sardineSpriteRef.current.dispose();
-                createSardine();
+                // Create new sardine at random position
+                const newSardinePosition = new Vector3(
+                    Math.random() * 14 - 7,  // Random x between -7 and 7
+                    Math.random() * 6 - 3,   // Random y between -3 and 3
+                    0
+                );
+                
+                // Dispose only the sardine
+                if (sardineSpriteRef.current) {
+                    sardineSpriteRef.current.dispose();
+                    sardineSpriteRef.current = null;
+                }
+                
+                // Create new sardine
+                createSardine(newSardinePosition);
+                
+                // Update score and play effects
                 onScoreUpdate?.();
                 catchSoundRef.current?.play();
                 try {
@@ -378,23 +351,217 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
             }
         });
 
-        // Start the render loop
-        engineRef.current.runRenderLoop((): void => {
-            scene.render();
-        });
-
         // Handle window resize
         window.addEventListener('resize', onResize);
 
-        return (): void => {
+        return () => {
+            if (isCleaningUp) return;
+            isCleaningUp = true;
+            
+            logMessage('Cleaning up game scene');
+            
+            // Remove render observer first
+            if (scene && renderObserver) {
+                scene.onBeforeRenderObservable.remove(renderObserver);
+                logMessage('Render observer removed');
+            }
+
+            // Then dispose sprites
+            if (catSpriteRef.current) {
+                catSpriteRef.current.dispose();
+                catSpriteRef.current = null;
+                logMessage('Cat sprite disposed');
+            }
+            if (sardineSpriteRef.current) {
+                sardineSpriteRef.current.dispose();
+                sardineSpriteRef.current = null;
+                logMessage('Sardine sprite disposed');
+            }
+            if (dogSpriteRef.current) {
+                dogSpriteRef.current.dispose();
+                dogSpriteRef.current = null;
+                logMessage('Dog sprite disposed');
+            }
+            if (catSpriteManagerRef.current) {
+                catSpriteManagerRef.current.dispose();
+                catSpriteManagerRef.current = null;
+                logMessage('Cat sprite manager disposed');
+            }
+            if (sardineSpriteManagerRef.current) {
+                sardineSpriteManagerRef.current.dispose();
+                sardineSpriteManagerRef.current = null;
+                logMessage('Sardine sprite manager disposed');
+            }
+            if (dogSpriteManagerRef.current) {
+                dogSpriteManagerRef.current.dispose();
+                dogSpriteManagerRef.current = null;
+                logMessage('Dog sprite manager disposed');
+            }
+            if (scene) {
+                scene.dispose();
+                logMessage('Scene disposed');
+            }
+            if (engineRef.current) {
+                engineRef.current.dispose();
+                engineRef.current = null;
+                logMessage('Engine disposed');
+            }
+        };
+    }, [canvasRef.current, isGameStarted, antialias, isPaused, onScoreUpdate]);
+
+    // Effect for handling game state
+    useEffect(() => {
+        if (!backgroundMusicRef.current?.isReady()) return;
+
+        if (!isGameStarted) {
+            if (backgroundMusicRef.current?.isPlaying) {
+                backgroundMusicRef.current?.stop();
+            }
+        } else {
+            if (isPaused) {
+                if (backgroundMusicRef.current?.isPlaying) {
+                    backgroundMusicRef.current?.pause();
+                }
+            } else {
+                backgroundMusicRef.current?.play();
+            }
+        }
+    }, [isGameStarted, isPaused]);
+
+    useEffect((): (() => void) => {
+        if (!canvasRef.current) return () => {};
+
+        // Store canvas reference for cleanup
+        const canvas = canvasRef.current;
+        let renderObserver: Observer<Scene> | null = null;
+
+        // Initialize keyboard state
+        const keyDownMap: KeyboardState = {};
+
+        // Initialize event handlers
+        const handleKeyDown = (e: KeyboardEvent): void => {
+            keyDownMapRef.current[e.key] = true;
+        };
+        
+        const handleKeyUp = (e: KeyboardEvent): void => {
+            keyDownMapRef.current[e.key] = false;
+        };
+
+        const handleTouchStart = (e: TouchEvent): void => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStateRef.current = {
+                active: true,
+                startX: touch.clientX,
+                startY: touch.clientY,
+                currentX: touch.clientX,
+                currentY: touch.clientY
+            };
+        };
+
+        const handleTouchMove = (e: TouchEvent): void => {
+            e.preventDefault();
+            if (!touchStateRef.current.active) return;
+            const touch = e.touches[0];
+            touchStateRef.current.currentX = touch.clientX;
+            touchStateRef.current.currentY = touch.clientY;
+        };
+
+        const handleTouchEnd = (e: TouchEvent): void => {
+            e.preventDefault();
+            touchStateRef.current.active = false;
+            catVelocityRef.current.x = 0;
+            catVelocityRef.current.y = 0;
+        };
+
+        const handleMouseDown = (e: MouseEvent): void => {
+            e.preventDefault();
+            const rect = canvasRef.current?.getBoundingClientRect();
+            if (!rect) return;
+            
+            mouseStateRef.current = {
+                active: true,
+                startX: e.clientX,
+                startY: e.clientY,
+                currentX: e.clientX,
+                currentY: e.clientY
+            };
+        };
+
+        const handleMouseMove = (e: MouseEvent): void => {
+            if (!mouseStateRef.current.active) return;
+
+            // Update current position
+            mouseStateRef.current.currentX = e.clientX;
+            mouseStateRef.current.currentY = e.clientY;
+
+            // Calculate distance from start
+            const dx = mouseStateRef.current.currentX - mouseStateRef.current.startX;
+            const dy = mouseStateRef.current.currentY - mouseStateRef.current.startY;
+
+            // Update start position to current for continuous movement
+            mouseStateRef.current.startX = mouseStateRef.current.currentX;
+            mouseStateRef.current.startY = mouseStateRef.current.currentY;
+
+            // Apply movement directly
+            catVelocityRef.current.x += dx * MOUSE_SENSITIVITY;
+            catVelocityRef.current.y -= dy * MOUSE_SENSITIVITY;
+        };
+
+        const handleMouseUp = (e: MouseEvent): void => {
+            mouseStateRef.current.active = false;
+        };
+
+        // Add event listeners
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        canvas.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        // Add dragstart prevention
+        const preventDrag = (e: DragEvent) => {
+            e.preventDefault();
+        };
+        canvas.addEventListener('dragstart', preventDrag);
+
+        // Get the current scene
+        const scene = sceneRef.current;
+        if (!scene) return () => {};
+
+        // Load catch sound
+        catchSoundRef.current = new Sound("catchSound", `${process.env.PUBLIC_URL}/assets/meow.mp3`, scene, null, {
+            loop: false,
+            autoplay: false,
+            volume: 0.15
+        });
+
+        // Load background music with onReady callback
+        backgroundMusicRef.current = new Sound(
+            "backgroundMusic",
+            `${process.env.PUBLIC_URL}/assets/nam-nam-nam.mp3`,
+            scene,
+            () => {
+                if (isGameStarted && !isPaused && backgroundMusicRef.current) {
+                    backgroundMusicRef.current.play();
+                }
+            },
+            {
+                loop: true,
+                autoplay: false,
+                volume: 0.3
+            }
+        );
+
+        return () => {
+            // Remove event listeners first
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('resize', onResize);
             
-            // Remove the render observer
-            scene.onBeforeRenderObservable.remove(renderObserver);
-            
-            // Remove touch event listeners
             if (canvas) {
                 canvas.removeEventListener('touchstart', handleTouchStart);
                 canvas.removeEventListener('touchmove', handleTouchMove);
@@ -402,14 +569,34 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
                 canvas.removeEventListener('mousedown', handleMouseDown);
             }
             
-            // Remove mouse event listeners
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
-            
-            // Clean up all resources
-            cleanup();
+
+            // Remove sprites
+            if (catSpriteRef.current) {
+                catSpriteRef.current.dispose();
+                catSpriteRef.current = null;
+            }
+            if (sardineSpriteRef.current) {
+                sardineSpriteRef.current.dispose();
+                sardineSpriteRef.current = null;
+            }
+            if (dogSpriteRef.current) {
+                dogSpriteRef.current.dispose();
+                dogSpriteRef.current = null;
+            }
+
+            // Then sound
+            if (catchSoundRef.current) {
+                catchSoundRef.current.dispose();
+                catchSoundRef.current = null;
+            }
+            if (backgroundMusicRef.current) {
+                backgroundMusicRef.current.dispose();
+                backgroundMusicRef.current = null;
+            }
         };
-    }, [antialias, onScoreUpdate]);
+    }, [canvasRef.current]);
 
     const onResize = (): void => {
         if (engineRef.current) {
@@ -417,17 +604,37 @@ const GameScene: FC<GameSceneProps> = ({ antialias, onScoreUpdate = () => {}, is
         }
     };
 
-    const createSardine = (): void => {
-        if (!sardineSpriteManagerRef.current) return;
+    const createSardine = (position?: Vector3): void => {
+        if (!sardineSpriteManagerRef.current || !sceneRef.current) return;
         
-        const sardine = new Sprite('sardine', sardineSpriteManagerRef.current);
+        // Store the sprite manager in a local variable to satisfy TypeScript
+        const sardineSpriteManager = sardineSpriteManagerRef.current;
+        
+        // Clean up existing sardine if it exists
+        if (sardineSpriteRef.current) {
+            sardineSpriteRef.current.dispose();
+            sardineSpriteRef.current = null;
+        }
+        
+        // Create new sardine
+        const sardine = new Sprite('sardine', sardineSpriteManager);
         sardine.width = 2.5;
         sardine.height = 1.5;
         sardine.invertU = true;
         
-        // Random position
-        sardine.position.x = Math.random() * 14 - 7;
-        sardine.position.y = Math.random() * 6 - 3;
+        if (position) {
+            // Use provided position
+            sardine.position.copyFrom(position);
+        } else {
+            // Random position for subsequent sardines
+            sardine.position.x = Math.random() * 14 - 7;
+            sardine.position.y = Math.random() * 6 - 3;
+            sardine.position.z = 0;
+        }
+        
+        // Reset sardine velocity
+        sardineVelocityRef.current.x = 0;
+        sardineVelocityRef.current.y = 0;
         
         sardineSpriteRef.current = sardine;
     };

@@ -6,6 +6,7 @@ const Game: FC = (): ReactElement => {
     const [score, setScore] = useState<number>(0);
     const [key, setKey] = useState<number>(0);
     const [isPaused, setIsPaused] = useState<boolean>(false);
+    const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
     const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
     const joystickBaseRef = useRef<HTMLDivElement>(null);
     
@@ -21,6 +22,10 @@ const Game: FC = (): ReactElement => {
 
     const handlePause = useCallback((): void => {
         setIsPaused(prev => !prev);
+    }, []);
+
+    const handleStartGame = useCallback((): void => {
+        setIsGameStarted(true);
     }, []);
 
     // Update joystick position based on touch input
@@ -87,84 +92,150 @@ const Game: FC = (): ReactElement => {
 
             {/* Game Canvas */}
             <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
-                <GameScene key={key} antialias={true} onScoreUpdate={handleScoreUpdate} isPaused={isPaused} />
+                <GameScene 
+                    antialias={true} 
+                    onScoreUpdate={handleScoreUpdate} 
+                    isPaused={isPaused} 
+                    isGameStarted={isGameStarted}
+                    score={score}
+                />
             </div>
 
-            {/* UI Overlay */}
-            <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                zIndex: 2,
-                pointerEvents: 'none'
-            }}>
-                {/* Score Display */}
+            {/* Start Button Overlay */}
+            {!isGameStarted && (
                 <div style={{
                     position: 'absolute',
-                    top: 20,
-                    left: 20,
-                    color: 'black',
-                    fontSize: '24px',
-                    fontWeight: 'bold'
-                }}>
-                    Score: {score}
-                </div>
-
-                {/* Game Controls */}
-                <div style={{
-                    position: 'absolute',
-                    top: 20,
-                    right: 20,
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, 120px)', // Move button below center
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px',
-                    pointerEvents: 'auto'
+                    alignItems: 'center',
+                    zIndex: 3
                 }}>
-                    <button 
-                        onClick={handleRestart}
+                    <div style={{
+                        fontSize: '28px',
+                        color: '#333',
+                        fontWeight: 'bold',
+                        textShadow: '2px 2px 4px rgba(255,255,255,0.8)',
+                        marginBottom: '20px'
+                    }}>
+                        Flying Whiskers
+                    </div>
+                    <button
+                        onClick={handleStartGame}
                         style={{
-                            padding: '8px 16px',
-                            fontSize: '18px',
+                            padding: '15px 40px',
+                            fontSize: '24px',
                             backgroundColor: '#4CAF50',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '4px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
                             fontWeight: 'bold',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                            transition: 'all 0.2s ease',
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                            e.currentTarget.style.backgroundColor = '#45a049';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.backgroundColor = '#4CAF50';
                         }}
                     >
-                        Restart
+                        Start Game
                     </button>
-                    <button 
-                        onClick={handlePause}
-                        style={{
-                            padding: '8px 16px',
-                            fontSize: '18px',
-                            backgroundColor: isPaused ? '#f44336' : '#2196F3',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }}
-                    >
-                        {isPaused ? 'Resume' : 'Pause'}
-                    </button>
+                    <div style={{
+                        fontSize: '16px',
+                        color: '#333',
+                        marginTop: '15px',
+                        textAlign: 'center',
+                        textShadow: '1px 1px 2px rgba(255,255,255,0.8)'
+                    }}>
+                        Use arrow keys or click and drag to move
+                    </div>
                 </div>
+            )}
 
-                {/* Virtual Joystick */}
-                <div className="joystick-base" ref={joystickBaseRef}>
-                    <div 
-                        className="joystick-stick"
-                        style={{
-                            transform: `translate(calc(-50% + ${joystickPosition.x}px), calc(-50% + ${joystickPosition.y}px))`
-                        }}
-                    />
+            {/* UI Overlay */}
+            {isGameStarted && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 2,
+                    pointerEvents: 'none'
+                }}>
+                    {/* Score Display */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 20,
+                        left: 20,
+                        color: 'black',
+                        fontSize: '24px',
+                        fontWeight: 'bold'
+                    }}>
+                        Score: {score}
+                    </div>
+
+                    {/* Game Controls */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 20,
+                        right: 20,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                        pointerEvents: 'auto'
+                    }}>
+                        <button 
+                            onClick={handleRestart}
+                            style={{
+                                padding: '8px 16px',
+                                fontSize: '18px',
+                                backgroundColor: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            Restart
+                        </button>
+                        <button 
+                            onClick={handlePause}
+                            style={{
+                                padding: '8px 16px',
+                                fontSize: '18px',
+                                backgroundColor: isPaused ? '#f44336' : '#2196F3',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            {isPaused ? 'Resume' : 'Pause'}
+                        </button>
+                    </div>
+
+                    {/* Virtual Joystick */}
+                    <div className="joystick-base" ref={joystickBaseRef}>
+                        <div 
+                            className="joystick-stick"
+                            style={{
+                                transform: `translate(calc(-50% + ${joystickPosition.x}px), calc(-50% + ${joystickPosition.y}px))`
+                            }}
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };
